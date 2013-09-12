@@ -1,15 +1,108 @@
 <?php
+/**
+ * This file is part of the TorFeed package.
+ *
+ * (c) Mitch Tuck <matuck@matuck.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 namespace matuck\TorFeed;
 
+use matuck\TorFeed\Items;
+
+/**
+ * TorFeed
+ * Processes torrent feeds with the help of handlers.
+ *
+ * @author Mitch Tuck<matuck@matuck.com>
+ */
 class TorFeed
 {
     protected $name;
     protected $url;
-    protected $handler;
     protected $xml;
+    protected $handler;
     protected $items;
+    protected $handlers;
     
-    public function __construct($name, $url, $handler = 'Standard')
+    /**
+     * Constructor
+     * 
+     * @param type $handlers
+     */
+    public function __construct($handlers = array())
+    {
+        $this->handlers = $handlers;
+    }
+    
+    /**
+     * @return string The name of the feed that was processed.
+     */
+    public function getName()
+    {
+        return $this->name;
+    }
+    
+    /**
+     * @return string The url for the feed that was processed.
+     */
+    public function getUrl()
+    {
+        return $this->url;
+    }
+    
+    /**
+     * @return string The name of the handler that was used to process the feed.
+     */
+    public function getHandler()
+    {
+        return $this->handler;
+    }
+    
+    /**
+     * @return SimpleXMLElement The xml in SimpleXMLElement format.
+     */
+    public function getXml()
+    {
+        return $this->xml;
+    }
+    
+    /**
+     * Add a handler that was declared at construction.
+     * @param string $name Name of the handler to use.
+     * @param string $class Namespace of the class to use.
+     */
+    public function addHandler(string $name, string $class)
+    {
+        $this->handlers[$name] = $class;
+    }
+    
+    /**
+     * Add multiple handlers that were not delcared at construction.
+     * @param array $handlers An associative array with the name of the handler as the key, and the namespace of the class as the value.
+     */
+    public function addHandlers(array $handlers)
+    {
+        $this->handlers = array_merge($this->handlers, $handlers);
+    }
+    
+    /**
+     * @return array Returns an array of all the handlers in no particular order.
+     */
+    public function getHandlers()
+    {
+        return array_keys($this->handlers);
+    }
+    
+    /**
+     * Get Items from a feed.
+     * @param string $name Name of the site for the feed.
+     * @param type $url URL for the feed.
+     * @param type $handler The handler to use to process the feed.
+     * @return array Returns an array of Items
+     */
+    public function getItems($name, $url, $handler = 'Standard')
     {
         $this->name = $name;
         $this->url = $url;
@@ -21,38 +114,7 @@ class TorFeed
             $xml = $decompress;
         }
         $this->xml = simplexml_load_string($xml);
-        //var_dump($this->feed->channel->item);
-        /*$array = array();
-        foreach($this->feed->xpath('channel/item') as $node)
-        {
-            $array[] = new Items((string) $node->title[0], (string) $node->link[0], NULL);
-        }
-        var_dump($array);*/
-    }
-    public function getName()
-    {
-        return $this->name;
-    }
-    public function getUrl()
-    {
-        return $this->url;
-    }
-    public function getHandler()
-    {
-        return $this->handler;
-    }
-    public function setHandler($handler)
-    {
-        $this->handler = $handler;
-    }
-    public function getXml()
-    {
-        return $this->xml;
-    }
-    public function getItems()
-    {
-        $handler = '\\matuck\\TorFeed\\Handler\\'.$this->handler.'TorFeedHandler';
-        $handler = new $handler($this->xml, $this->items);
+        $handle = new $this->handlers[$handler]($this->xml, $this->items);
         return $this->items;
     }
 }
