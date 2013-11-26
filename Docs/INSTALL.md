@@ -15,7 +15,6 @@ This bundle is available on [Packagist](http://packagist.org/packages/matuck/Tor
     ...
 }
 ```
-(Also put all the handlers you want in the require section.)
 
 ### 2. Install it:
 

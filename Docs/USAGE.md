@@ -4,12 +4,14 @@ Usage
 ```
 use matuck/TorFeed/TorFeed;
 
-$handlers = array(
-    'HandlerName' => "\\namespace\\to\\handler\\class"
-);
-$feed = new TorFeed($handlers);
-
-$feed->getItems('name of the site', 'url for the rss feed', 'name of the handler to use');
+$feed = new TorFeed($name, $url, $itemXpath, $itemtitleXpath, $itemtorrenturlXpath, $itemmagnetXpath);
+/* examples
+$feed = new TorFeed('somesite', 'http://www.example.com/feed', 'channel/item', 'title', 'link', 'magnet');
+$feed = new TorFeed('somesite', 'http://www.example.com/feed', 'channel/item', 'title', 'link', NULL);
+$feed = new TorFeed('somesite', 'http://www.example.com/feed', 'channel/item', 'title', 'link');
+$feed = new TorFeed('somesite', 'http://www.example.com/feed', 'channel/item', 'title', NULL, 'magnet');
+*/
+$items = $feed->getItems();
 ```
 
-$feed->getItems() returns an array matuck/TorFeed/Items
+$feed->getItems() returns an array matuck/TorFeed/Item
