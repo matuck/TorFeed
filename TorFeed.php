@@ -9,112 +9,126 @@
  */
 namespace matuck\TorFeed;
 
-use matuck\TorFeed\Items;
+use matuck\TorFeed\Item;
 
 /**
  * TorFeed
- * Processes torrent feeds with the help of handlers.
  *
  * @author Mitch Tuck<matuck@matuck.com>
  */
 class TorFeed
 {
-    protected $name;
-    protected $url;
-    protected $xml;
-    protected $handler;
-    protected $items;
-    protected $handlers;
-    
-    /**
-     * Constructor
-     * 
-     * @param type $handlers
-     */
-    public function __construct($handlers = array())
+  protected $name;
+  protected $url;
+  protected $xml;
+  protected $items;
+  protected $itemXpath;
+  protected $itemtitleXpath;  //should be relative to itemXpath
+  protected $itemtorrenturlXpath;  //should be relative to itemXpath
+  protected $itemmagnetXpath;  //should be relative to itemXpath
+
+  /**
+   * Constructor
+   * 
+   * @param type $handlers
+   */
+  public function __construct($name, $url, $itemXpath, $itemtitleXpath, $itemtorrenturlXpath = NULL, $itemmagnetXpath = NULL)
+  {
+    $this->name = $name;
+    $this->url = $url;
+    $this->itemXpath = $itemXpath;
+    $this->itemtitleXpath = $itemtitleXpath;
+    $this->itemtorrenturlXpath = $itemtorrenturlXpath;
+    $this->itemmagnetXpath = $itemmagnetXpath;
+
+    $xml = file_get_contents($url);
+    $decompress = gzdecode($xml);
+    if($decompress !== FALSE)
     {
-        $this->handlers = $handlers;
+        $xml = $decompress;
     }
+    $this->xml = simplexml_load_string($xml);
+  }
+
+  /**
+   * @return string The name of the feed that was processed.
+   */
+  public function getName()
+  {
+    return $this->name;
+  }
     
-    /**
-     * @return string The name of the feed that was processed.
-     */
-    public function getName()
-    {
-        return $this->name;
-    }
+  /**
+   * @return string The url for the feed that was processed.
+   */
+  public function getUrl()
+  {
+    return $this->url;
+  }
     
-    /**
-     * @return string The url for the feed that was processed.
-     */
-    public function getUrl()
-    {
-        return $this->url;
-    }
+  /**
+   * @return SimpleXMLElement The xml in SimpleXMLElement format.
+   */
+  public function getXml()
+  {
+    return $this->xml;
+  }
     
-    /**
-     * @return string The name of the handler that was used to process the feed.
-     */
-    public function getHandler()
+  /**
+   * @return string The xpath used to get items.
+   */
+  public function getItemXpath()
+  {
+    return $this->itemXpath;
+  }
+  
+  /**
+   * @return string The relative xpath used to get title.
+   */
+  public function getItemtitleXpath()
+  {
+    return $this->itemtitleXpath;
+  }
+  
+  /**
+   * @return string The relative xpath used to get torrent url.
+   */
+  public function getItemtorrenturlXpath()
+  {
+    return $this->itemtorrenturlXpath;
+  }
+  
+  /**
+   * @return string The relative xpath used to get magnet link.
+   */
+  public function getItemmagnetXpath()
+  {
+    return $this->itemmagnetXpath;
+  }
+  
+  /**
+   * Get Items from a feed.
+   * 
+   * @return array Returns an array of Items
+   */
+  public function getItems()
+  {
+    $namespaces = $this->xml->getDocNamespaces();
+    foreach($namespaces as $namespace => $url)
     {
-        return $this->handler;
+      $this->xml->registerXPathNamespace($namespace, $url);
     }
-    
-    /**
-     * @return SimpleXMLElement The xml in SimpleXMLElement format.
-     */
-    public function getXml()
+
+    foreach ($this->xml->xpath($this->itemXpath) as $item)
     {
-        return $this->xml;
+      $this->items[] = new Item
+      (
+        $this->itemtitleXpath ? (string) $item->xpath($this->itemtitleXpath)[0] : NULL,
+        $this->itemtorrenturlXpath ? (string) $item->xpath($this->itemtorrenturlXpath)[0] : NULL,
+        $this->itemmagnetXpath ? (string) $item->xpath($this->itemmagnetXpath)[0] : NULL
+      );
     }
-    
-    /**
-     * Add a handler that was declared at construction.
-     * @param string $name Name of the handler to use.
-     * @param string $class Namespace of the class to use.
-     */
-    public function addHandler(string $name, string $class)
-    {
-        $this->handlers[$name] = $class;
-    }
-    
-    /**
-     * Add multiple handlers that were not delcared at construction.
-     * @param array $handlers An associative array with the name of the handler as the key, and the namespace of the class as the value.
-     */
-    public function addHandlers(array $handlers)
-    {
-        $this->handlers = array_merge($this->handlers, $handlers);
-    }
-    
-    /**
-     * @return array Returns an array of all the handlers in no particular order.
-     */
-    public function getHandlers()
-    {
-        return array_keys($this->handlers);
-    }
-    
-    /**
-     * Get Items from a feed.
-     * @param string $name Name of the site for the feed.
-     * @param type $url URL for the feed.
-     * @param type $handler The handler to use to process the feed.
-     * @return array Returns an array of Items
-     */
-    public function getItems($name, $url, $handler = 'Standard')
-    {
-        $this->name = $name;
-        $this->url = $url;
-        $this->handler = $handler;
-        $xml = file_get_contents($url);
-        $decompress = gzdecode($xml);
-        if($decompress !== FALSE)
-        {
-            $xml = $decompress;
-        }
-        $this->xml = simplexml_load_string($xml);
-        $handle = new $this->handlers[$handler]($this->xml, $this->items);
-        return $this->items;
-    }
+
+    return $this->items;
+  }
 }
